@@ -3,11 +3,13 @@ import SwiftUI
 import TodoKit
 
 struct TaskListView: View {
+    @Environment(SyncService.self) private var sync
     @Query private var tasks: [TaskItem]
     @Query(filter: #Predicate<TrackedCourse> { $0.isTracked }) private var trackedCourses: [TrackedCourse]
+    @Query(filter: #Predicate<TrackedCourse> { !$0.hasBeenOffered }) private var newCourses: [TrackedCourse]
     @State private var showsDone = false
+    @State private var showsSettings = false
     @State private var editing: TaskItem?
-    var onRefresh: () async -> Void = {}
 
     private var visibleTasks: [TaskItem] {
         let tracked = Set(trackedCourses.map(\.canvasCourseID))
@@ -20,6 +22,15 @@ struct TaskListView: View {
 
         NavigationStack {
             List {
+                if let error = sync.lastError {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                }
+                if !trackedCourses.isEmpty, !newCourses.isEmpty {
+                    Button("\(newCourses.count) new Canvas \(newCourses.count == 1 ? "course" : "courses") — choose in Settings", systemImage: "sparkles") {
+                        showsSettings = true
+                    }
+                }
                 if active.isEmpty {
                     ContentUnavailableView("All clear", systemImage: "checkmark.circle", description: Text("Nothing left to do."))
                 }
@@ -44,18 +55,29 @@ struct TaskListView: View {
             .animation(.default, value: tasks.map(\.stateRaw))
             .animation(.default, value: tasks.count)
             .navigationTitle("To Do")
-            .refreshable { await onRefresh() }
+            .refreshable { await sync.syncNow() }
             .toolbar {
-                Button("Refresh", systemImage: "arrow.clockwise") {
-                    Task { await onRefresh() }
+                ToolbarItemGroup {
+                    if sync.isSyncing {
+                        ProgressView()
+                    } else {
+                        Button("Refresh", systemImage: "arrow.clockwise") {
+                            Task { await sync.syncNow() }
+                        }
+                        .keyboardShortcut("r")
+                    }
+                    Button("Settings", systemImage: "gear") { showsSettings = true }
+                        .keyboardShortcut(",")
                 }
-                .keyboardShortcut("r")
             }
             .safeAreaInset(edge: .bottom) {
                 AddTaskBar()
             }
             .sheet(item: $editing) { task in
                 EditTaskSheet(task: task)
+            }
+            .sheet(isPresented: $showsSettings) {
+                SettingsView()
             }
         }
     }
