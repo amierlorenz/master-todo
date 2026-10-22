@@ -14,6 +14,8 @@ public enum CanvasReconciler {
         public var flaggedGone = 0
         /// Pending tasks that Canvas now confirms as submitted.
         public var autoDismissed = 0
+        /// Courses Canvas wouldn't return (dropped, unpublished, or unreachable); their tasks were left as they were.
+        public var failedCourses: [String] = []
 
         public init() {}
 
@@ -23,6 +25,7 @@ public enum CanvasReconciler {
             sum.updated += rhs.updated
             sum.flaggedGone += rhs.flaggedGone
             sum.autoDismissed += rhs.autoDismissed
+            sum.failedCourses += rhs.failedCourses
             return sum
         }
     }
