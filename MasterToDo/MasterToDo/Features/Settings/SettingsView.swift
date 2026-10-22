@@ -1,7 +1,11 @@
+import SwiftData
 import SwiftUI
+import TodoKit
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(SyncService.self) private var sync
+    @Query private var courses: [TrackedCourse]
     @AppStorage(NotificationService.summaryHourKey) private var summaryHour = 8
     @AppStorage(NotificationService.summaryMinuteKey) private var summaryMinute = 0
     @State private var summaryTime = Date.now
@@ -24,6 +28,11 @@ struct SettingsView: View {
                     Button("Done", role: .confirm) { dismiss() }
                 }
             }
+        }
+        .task { await sync.refreshCourses() }
+        .onDisappear {
+            for course in courses { course.hasBeenOffered = true }
+            Task { await sync.syncNow() }
         }
         .onAppear {
             summaryTime = Calendar.current.date(bySettingHour: summaryHour, minute: summaryMinute, second: 0, of: .now) ?? .now

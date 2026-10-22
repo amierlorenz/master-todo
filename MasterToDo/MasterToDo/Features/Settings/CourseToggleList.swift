@@ -5,7 +5,6 @@ import TodoKit
 /// Turns Canvas courses on or off. Turning one off hides its tasks without deleting them.
 struct CourseToggleList: View {
     @Environment(SyncService.self) private var sync
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \TrackedCourse.name) private var courses: [TrackedCourse]
 
     var body: some View {
@@ -25,11 +24,6 @@ struct CourseToggleList: View {
                     }
                 }
             }
-        }
-        .task { await sync.refreshCourses() }
-        .onDisappear {
-            for course in courses { course.hasBeenOffered = true }
-            Task { await sync.syncNow() }
         }
     }
 }

@@ -17,6 +17,7 @@ final class SyncService {
     private(set) var isSyncing = false
     private(set) var lastError: String?
     private(set) var hasCanvasAccount = CanvasConnection.client() != nil
+    private var resyncRequested = false
     private let context: ModelContext
 
     init(context: ModelContext) {
@@ -40,19 +41,31 @@ final class SyncService {
         await syncNow()
     }
 
+    /// Syncs now; a request made while a sync is running queues one more pass
+    /// so changes made meanwhile (such as a course just switched on) aren't dropped.
     func syncNow() async {
-        guard !isSyncing, let client = CanvasConnection.client() else { return }
+        guard CanvasConnection.client() != nil else { return }
+        if isSyncing {
+            resyncRequested = true
+            return
+        }
         isSyncing = true
         defer { isSyncing = false }
-        do {
-            let sync = CanvasSync(context: context, client: client)
-            try await sync.refreshCourses()
-            try await sync.run()
-            lastSync = .now
-            lastError = nil
-        } catch {
-            lastError = Self.message(for: error)
-        }
+        repeat {
+            resyncRequested = false
+            guard let client = CanvasConnection.client() else { return }
+            do {
+                let sync = CanvasSync(context: context, client: client)
+                try await sync.refreshCourses()
+                let result = try await sync.run()
+                lastSync = .now
+                lastError = result.failedCourses.isEmpty
+                    ? nil
+                    : "Couldn't load \(result.failedCourses.formatted(.list(type: .and))) from Canvas. Other courses are up to date."
+            } catch {
+                lastError = Self.message(for: error)
+            }
+        } while resyncRequested
     }
 
     /// Updates the course list from Canvas. Returns how many courses the user hasn't been shown.
