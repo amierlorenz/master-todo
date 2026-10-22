@@ -32,3 +32,15 @@ extension TaskItem {
 func assignment(_ json: String) -> CanvasAssignment {
     try! CanvasClient.decoder.decode(CanvasAssignment.self, from: Data(json.utf8))
 }
+
+/// Builds Canvas assignment JSON with only the fields a test cares about.
+func assignmentJSON(id: Int, name: String = "A", due: String? = nil, lock: String? = nil, state: String = "unsubmitted", excused: Bool = false, types: [String] = ["online_upload"]) -> String {
+    let typeList = types.map { "\"\($0)\"" }.joined(separator: ",")
+    let due = due.map { "\"\($0)\"" } ?? "null"
+    let lock = lock.map { "\"\($0)\"" } ?? "null"
+    return #"{"id":\#(id),"name":"\#(name)","due_at":\#(due),"lock_at":\#(lock),"submission_types":[\#(typeList)],"submission":{"workflow_state":"\#(state)","excused":\#(excused)}}"#
+}
+
+func makeAssignment(id: Int, name: String = "A", due: String? = nil, lock: String? = nil, state: String = "unsubmitted", excused: Bool = false) -> CanvasAssignment {
+    assignment(assignmentJSON(id: id, name: name, due: due, lock: lock, state: state, excused: excused))
+}
