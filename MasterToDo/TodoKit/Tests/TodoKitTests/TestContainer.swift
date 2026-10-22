@@ -28,3 +28,7 @@ extension TaskItem {
         return task
     }
 }
+
+func assignment(_ json: String) -> CanvasAssignment {
+    try! CanvasClient.decoder.decode(CanvasAssignment.self, from: Data(json.utf8))
+}
