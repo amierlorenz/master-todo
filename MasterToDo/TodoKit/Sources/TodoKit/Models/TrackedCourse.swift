@@ -4,6 +4,8 @@ import SwiftData
 /// An active Canvas course and whether the user syncs it.
 @Model
 public final class TrackedCourse {
+    /// Breaks ties when merging duplicates, so every device keeps the same record.
+    public var id: UUID = UUID()
     public var canvasCourseID: Int = 0
     public var name: String = ""
     public var isTracked: Bool = false

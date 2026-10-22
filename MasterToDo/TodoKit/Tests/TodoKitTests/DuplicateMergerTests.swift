@@ -73,4 +73,53 @@ struct DuplicateMergerTests {
         #expect(courses.first?.isTracked == true)
         #expect(courses.first?.firstSyncedAt == Date(timeIntervalSince1970: 100))
     }
+
+    @Test(arguments: [false, true])
+    func sameCourseSurvivesInEitherInsertOrder(reversed: Bool) throws {
+        let container = try TestContainer.make()
+        let context = container.mainContext
+        let a = TrackedCourse(canvasCourseID: 7, name: "DS")
+        a.id = UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!
+        let b = TrackedCourse(canvasCourseID: 7, name: "DS")
+        b.id = UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!
+        for course in reversed ? [b, a] : [a, b] { context.insert(course) }
+
+        try DuplicateMerger.mergeAll(in: context)
+
+        #expect(try context.fetch(FetchDescriptor<TrackedCourse>()).map(\.id) == [a.id])
+    }
+
+    @Test(arguments: [false, true])
+    func sameTombstoneSurvivesInEitherInsertOrder(reversed: Bool) throws {
+        let container = try TestContainer.make()
+        let context = container.mainContext
+        let a = RemovedCanvasItem(canvasAssignmentID: 1)
+        a.id = UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!
+        let b = RemovedCanvasItem(canvasAssignmentID: 1)
+        b.id = UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!
+        for item in reversed ? [b, a] : [a, b] { context.insert(item) }
+
+        try DuplicateMerger.mergeAll(in: context)
+
+        #expect(try context.fetch(FetchDescriptor<RemovedCanvasItem>()).map(\.id) == [a.id])
+    }
+
+    @Test(arguments: [false, true])
+    func sameTaskSurvivesFullTieInEitherInsertOrder(reversed: Bool) throws {
+        let container = try TestContainer.make()
+        let context = container.mainContext
+        let created = Date(timeIntervalSince1970: 100)
+        let a = TaskItem.canvas("A", assignmentID: 1)
+        a.id = UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!
+        a.createdAt = created
+        let b = TaskItem.canvas("A", assignmentID: 1)
+        b.id = UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!
+        b.createdAt = created
+        for task in reversed ? [b, a] : [a, b] { context.insert(task) }
+
+        try DuplicateMerger.mergeAll(in: context)
+
+        #expect(try context.fetch(FetchDescriptor<TaskItem>()).map(\.id) == [a.id])
+    }
+
 }
