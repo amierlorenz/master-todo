@@ -17,43 +17,46 @@ struct TaskListView: View {
     }
 
     var body: some View {
-        let active = TaskOrdering.sorted(visibleTasks.filter { $0.state != .done }, now: .now, calendar: .current)
+        // Re-renders every minute so countdowns tick and tasks move between groups on time.
+        TimelineView(.everyMinute) { context in
+            content(now: context.date)
+        }
+    }
+
+    private func content(now: Date) -> some View {
+        let active = TaskOrdering.sorted(visibleTasks.filter { $0.state != .done }, now: now, calendar: .current)
         let done = visibleTasks.filter { $0.state == .done }.sorted { $0.title < $1.title }
 
-        NavigationStack {
-            List {
-                if let error = sync.lastError {
-                    Label(error, systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
-                }
-                if !trackedCourses.isEmpty, !newCourses.isEmpty {
-                    Button("\(newCourses.count) new Canvas \(newCourses.count == 1 ? "course" : "courses") — choose in Settings", systemImage: "sparkles") {
-                        showsSettings = true
+        return NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let error = sync.lastError {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
                     }
-                }
-                if active.isEmpty {
-                    ContentUnavailableView("All clear", systemImage: "checkmark.circle", description: Text("Nothing left to do."))
-                }
-                ForEach(active) { task in
-                    TaskRow(task: task) { editing = task }
-                }
-                if !done.isEmpty {
-                    Section {
-                        if showsDone {
-                            ForEach(done) { task in
-                                TaskRow(task: task) { editing = task }
-                            }
+                    if !trackedCourses.isEmpty, !newCourses.isEmpty {
+                        Button("\(newCourses.count) new Canvas \(newCourses.count == 1 ? "course" : "courses") — choose in Settings", systemImage: "sparkles") {
+                            showsSettings = true
                         }
-                    } header: {
+                        .buttonStyle(.glass)
+                    }
+                    if active.isEmpty {
+                        ContentUnavailableView("All clear", systemImage: "checkmark.circle", description: Text("Nothing left to do."))
+                    }
+                    rows(active, now: now)
+                    if !done.isEmpty {
                         Button(showsDone ? "Hide Done (\(done.count))" : "Show Done (\(done.count))") {
                             withAnimation { showsDone.toggle() }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.glass)
+                        if showsDone { rows(done, now: now) }
                     }
                 }
+                .padding(.horizontal)
+                .animation(.default, value: tasks.map(\.stateRaw))
+                .animation(.default, value: tasks.count)
             }
-            .animation(.default, value: tasks.map(\.stateRaw))
-            .animation(.default, value: tasks.count)
+            .background(.background.secondary)
             .navigationTitle("To Do")
             .refreshable { await sync.syncNow() }
             .toolbar {
@@ -78,6 +81,16 @@ struct TaskListView: View {
             }
             .sheet(isPresented: $showsSettings) {
                 SettingsView()
+            }
+        }
+    }
+
+    private func rows(_ tasks: [TaskItem], now: Date) -> some View {
+        GlassEffectContainer(spacing: 8) {
+            LazyVStack(spacing: 8) {
+                ForEach(tasks) { task in
+                    TaskCapsule(task: task, now: now) { editing = task }
+                }
             }
         }
     }

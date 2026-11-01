@@ -24,6 +24,19 @@ public enum CanvasFlag: Sendable {
     case removedFromCanvas
 }
 
+/// The one state a task's row leads with: its most pressing notice, else where it came from.
+public enum TaskStatus: Sendable {
+    case done
+    case dateChanged
+    /// Checked off in the app, but Canvas hasn't seen a submission.
+    case notTurnedIn
+    case removedFromCanvas
+    case closed
+    case submitted
+    case canvas
+    case userCreated
+}
+
 /// One entry in the list: either the user's own task or a Canvas assignment.
 @Model
 public final class TaskItem {
@@ -83,6 +96,18 @@ public final class TaskItem {
         if isSubmittedOnCanvas { return .submitted }
         if let lockAt, lockAt <= now { return .closed }
         return nil
+    }
+
+    public func status(now: Date) -> TaskStatus {
+        if state == .done { return .done }
+        if dueDateChanged { return .dateChanged }
+        if state == .pendingVerification { return .notTurnedIn }
+        switch canvasFlag(now: now) {
+        case .removedFromCanvas: return .removedFromCanvas
+        case .closed: return .closed
+        case .submitted: return .submitted
+        case nil: return isCanvas ? .canvas : .userCreated
+        }
     }
 
     /// Own tasks always show; Canvas tasks only while their course is tracked.

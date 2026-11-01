@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage(NotificationService.summaryHourKey) private var summaryHour = 8
     @AppStorage(NotificationService.summaryMinuteKey) private var summaryMinute = 0
     @State private var summaryTime = Date.now
+    @AppStorage(CompleteControl.tapToCompleteKey) private var tapToComplete = false
 
     var body: some View {
         NavigationStack {
@@ -17,6 +18,15 @@ struct SettingsView: View {
                 Section("Courses") {
                     CourseToggleList()
                 }
+                #if os(iOS)
+                Section {
+                    Toggle("Tap to complete", isOn: $tapToComplete)
+                } header: {
+                    Text("Tasks")
+                } footer: {
+                    Text(tapToComplete ? "Tap a task's date once, then again to complete it." : "Slide a task's date to the left to complete it.")
+                }
+                #endif
                 Section("Notifications") {
                     DatePicker("Daily summary", selection: $summaryTime, displayedComponents: .hourAndMinute)
                 }
