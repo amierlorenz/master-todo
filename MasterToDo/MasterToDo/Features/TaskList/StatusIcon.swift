@@ -33,6 +33,8 @@ extension TaskStatus {
         }
     }
 
+    var isDismissible: Bool { self == .dateChanged || self == .submitted }
+
     /// nil means the Canvas logo, which isn't an SF Symbol.
     var symbol: String? {
         switch self {

@@ -3,9 +3,15 @@ import Foundation
 public enum TaskFilter: String, CaseIterable, Sendable {
     case closing, overdue, upcoming, undated, done
     case canvas, manual
+    case submitted, dateChanged, closed
 
     /// At most one filter per group is picked; picks in different groups combine.
-    public static let groups: [[TaskFilter]] = [[.closing, .overdue, .upcoming, .undated, .done], [.canvas, .manual]]
+    public static let groups: [[TaskFilter]] = [
+        [.closing, .overdue, .upcoming, .undated, .done],
+        [.canvas, .manual],
+        [.submitted, .dateChanged, .closed],
+    ]
+    public static let noticeGroup = 2
 
     public var group: Int { Self.groups.firstIndex { $0.contains(self) }! }
 
@@ -21,6 +27,9 @@ public enum TaskFilter: String, CaseIterable, Sendable {
         case .done: !isOpen
         case .canvas: task.isCanvas
         case .manual: !task.isCanvas
+        case .submitted: task.canvasFlag(now: now) == .submitted && !task.submittedDismissed
+        case .dateChanged: task.dueDateChanged
+        case .closed: task.canvasFlag(now: now) == .closed
         }
     }
 }

@@ -39,6 +39,21 @@ struct TaskFilterTests {
         #expect(shown(selection) == ["upcoming", "undated"])
     }
 
+    @Test func noticesMatchUndismissedOnly() {
+        let submitted = TaskItem.canvas("submitted", assignmentID: 4)
+        submitted.isSubmittedOnCanvas = true
+        let closed = TaskItem.canvas("closed", assignmentID: 5, dueAt: cal.at(2026, 10, 19))
+        closed.lockAt = cal.at(2026, 10, 20)
+        let moved = TaskItem(title: "moved")
+        moved.dueDateChanged = true
+
+        #expect(TaskFilter.submitted.matches(submitted, now: now, calendar: cal))
+        #expect(TaskFilter.closed.matches(closed, now: now, calendar: cal))
+        #expect(TaskFilter.dateChanged.matches(moved, now: now, calendar: cal))
+        submitted.submittedDismissed = true
+        #expect(!TaskFilter.submitted.matches(submitted, now: now, calendar: cal))
+    }
+
     @Test func countsRespectOtherGroups() {
         var selection = FilterSelection()
         selection.toggle(.canvas)

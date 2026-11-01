@@ -42,6 +42,23 @@ struct DuplicateMergerTests {
         #expect(kept.dueAt == Date(timeIntervalSince1970: 5000))
     }
 
+    @Test func dismissalSurvivesMerge() throws {
+        let container = try TestContainer.make()
+        let context = container.mainContext
+        let keeper = TaskItem.canvas("A", assignmentID: 1)
+        keeper.state = .done
+        let dismissed = TaskItem.canvas("A", assignmentID: 1)
+        dismissed.submittedDismissed = true
+        context.insert(keeper)
+        context.insert(dismissed)
+
+        try DuplicateMerger.mergeAll(in: context)
+
+        let kept = try #require(try context.fetch(FetchDescriptor<TaskItem>()).first)
+        #expect(kept.state == .done)
+        #expect(kept.submittedDismissed)
+    }
+
     @Test func tombstoneDeletesAllCopies() throws {
         let container = try TestContainer.make()
         let context = container.mainContext
