@@ -17,6 +17,22 @@ struct TaskItemTests {
         #expect(task.effectiveDue(calendar: cal) == cal.at(2026, 10, 21, 15, 0))
     }
 
+    @Test func statusLeadsWithMostPressing() {
+        let now = cal.at(2026, 10, 21, 12)
+        let task = TaskItem.canvas("A", assignmentID: 1)
+        #expect(task.status(now: now) == .canvas)
+        #expect(TaskItem(title: "mine").status(now: now) == .userCreated)
+
+        task.isSubmittedOnCanvas = true
+        #expect(task.status(now: now) == .submitted)
+        task.state = .pendingVerification
+        #expect(task.status(now: now) == .notTurnedIn)
+        task.dueDateChanged = true
+        #expect(task.status(now: now) == .dateChanged)
+        task.state = .done
+        #expect(task.status(now: now) == .done)
+    }
+
     @Test func canvasFlagPriority() {
         let now = cal.at(2026, 10, 21, 12)
         let gone = TaskItem.canvas("A", assignmentID: 1)
