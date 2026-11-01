@@ -16,6 +16,25 @@ struct TaskOrderingTests {
         #expect(sorted.map(\.title) == ["overdue", "today", "later", "noDate"])
     }
 
+    @Test func pastDueStillOpenSortsFirstBySoonestClose() {
+        let now = cal.at(2026, 10, 21, 12)
+        let overdue = TaskItem(title: "overdue", dueAt: cal.at(2026, 10, 20, 9), hasDueTime: true)
+        let closed = TaskItem(title: "closed", dueAt: cal.at(2026, 10, 20, 9), hasDueTime: true)
+        closed.lockAt = cal.at(2026, 10, 21, 11)
+        let closesLater = TaskItem(title: "closesLater", dueAt: cal.at(2026, 10, 19, 9), hasDueTime: true)
+        closesLater.lockAt = cal.at(2026, 10, 23)
+        let closesSoon = TaskItem(title: "closesSoon", dueAt: cal.at(2026, 10, 20, 9), hasDueTime: true)
+        closesSoon.lockAt = cal.at(2026, 10, 21, 14)
+        let today = TaskItem(title: "today", dueAt: cal.at(2026, 10, 21, 18), hasDueTime: true)
+        today.lockAt = cal.at(2026, 10, 22)
+
+        #expect(TaskOrdering.bucket(of: closesSoon, now: now, calendar: cal) == .closing)
+        #expect(TaskOrdering.bucket(of: overdue, now: now, calendar: cal) == .overdue)
+        #expect(TaskOrdering.bucket(of: closed, now: now, calendar: cal) == .overdue)
+        let sorted = TaskOrdering.sorted([today, overdue, closed, closesLater, closesSoon], now: now, calendar: cal)
+        #expect(sorted.map(\.title) == ["closesSoon", "closesLater", "overdue", "closed", "today"])
+    }
+
     @Test func tiesBrokenByCreation() {
         let now = cal.at(2026, 10, 21, 12)
         let second = TaskItem(title: "second")
