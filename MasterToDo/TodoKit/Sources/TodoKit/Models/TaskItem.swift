@@ -59,6 +59,8 @@ public final class TaskItem {
     public var isGoneFromCanvas: Bool = false
     /// Canvas moved the due date since the user last looked at the task.
     public var dueDateChanged: Bool = false
+    /// The user has seen that Canvas recorded a submission and cleared the notice.
+    public var submittedDismissed: Bool = false
     public var lastSyncedAt: Date?
 
     public init(title: String, dueAt: Date? = nil, hasDueTime: Bool = false) {
@@ -105,8 +107,8 @@ public final class TaskItem {
         switch canvasFlag(now: now) {
         case .removedFromCanvas: return .removedFromCanvas
         case .closed: return .closed
-        case .submitted: return .submitted
-        case nil: return isCanvas ? .canvas : .userCreated
+        case .submitted where !submittedDismissed: return .submitted
+        case .submitted, nil: return isCanvas ? .canvas : .userCreated
         }
     }
 

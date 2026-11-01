@@ -25,6 +25,8 @@ struct TaskItemTests {
 
         task.isSubmittedOnCanvas = true
         #expect(task.status(now: now) == .submitted)
+        task.submittedDismissed = true
+        #expect(task.status(now: now) == .canvas)
         task.state = .pendingVerification
         #expect(task.status(now: now) == .notTurnedIn)
         task.dueDateChanged = true

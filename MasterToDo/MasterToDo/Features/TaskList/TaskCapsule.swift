@@ -25,13 +25,16 @@ struct TaskCapsule: View {
         let status = task.status(now: now)
         HStack(spacing: 10) {
             Button {
-                withAnimation { task.dueDateChanged = false }
+                withAnimation {
+                    if status == .dateChanged { task.dueDateChanged = false }
+                    if status == .submitted { task.submittedDismissed = true }
+                }
             } label: {
                 StatusIcon(status: status)
             }
             .buttonStyle(.plain)
-            .disabled(status != .dateChanged)
-            .help(status == .dateChanged ? "\(status.label). Tap to dismiss." : status.label)
+            .disabled(!status.isDismissible)
+            .help(status.isDismissible ? "\(status.label). Tap to dismiss." : status.label)
 
             Menu {
                 menuItems
@@ -87,6 +90,7 @@ struct TaskCapsule: View {
         }
         .sensoryFeedback(.success, trigger: isCompleting) { _, completing in completing }
         .sensoryFeedback(.impact(weight: .light), trigger: task.dueDateChanged) { wasChanged, isChanged in wasChanged && !isChanged }
+        .sensoryFeedback(.impact(weight: .light), trigger: task.submittedDismissed) { _, isDismissed in isDismissed }
         .accessibilityAction(named: isDone ? "Mark not done" : "Complete") {
             if isDone { TaskCompletion.uncheck(task) } else { complete() }
         }

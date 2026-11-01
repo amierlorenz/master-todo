@@ -39,6 +39,7 @@ public enum DuplicateMerger {
             }!
             let newest = group.max { ($0.lastSyncedAt ?? .distantPast) < ($1.lastSyncedAt ?? .distantPast) }!
             if newest !== keeper { copyCanvasFields(from: newest, to: keeper) }
+            keeper.submittedDismissed = group.contains(where: \.submittedDismissed)
             for duplicate in group where duplicate !== keeper {
                 context.delete(duplicate)
                 removed += 1
