@@ -10,6 +10,8 @@ struct TaskListView: View {
     @State private var filters = FilterSelection()
     @State private var isScrolled = false
     @State private var showsSettings = false
+    @State private var showsGuide = false
+    @AppStorage(GuideSheet.hasSeenKey) private var hasSeenGuide = false
     @State private var editing: TaskItem?
 
     private var visibleTasks: [TaskItem] {
@@ -83,6 +85,7 @@ struct TaskListView: View {
                         }
                         .keyboardShortcut("r")
                     }
+                    Button("How it works", systemImage: "questionmark.circle") { showsGuide = true }
                     Button("Settings", systemImage: "gear") { showsSettings = true }
                         .keyboardShortcut(",")
                 }
@@ -95,6 +98,15 @@ struct TaskListView: View {
             }
             .sheet(isPresented: $showsSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $showsGuide) {
+                GuideSheet()
+            }
+            .onAppear {
+                if !hasSeenGuide {
+                    showsGuide = true
+                    hasSeenGuide = true
+                }
             }
         }
     }
