@@ -8,11 +8,8 @@ struct MasterToDoApp: App {
     @State private var sync: SyncService
 
     init() {
-        let localOnly = UserDefaults.standard.bool(forKey: "localStore")
-        let configuration = ModelConfiguration(cloudKitDatabase: localOnly ? .none : .private("iCloud.com.mieracle.MasterToDo"))
         do {
-            container = try ModelContainer(for: Schema(TodoSchema.models), configurations: configuration)
-            try TaskMigration.migrate(in: container.mainContext)
+            container = try TaskStore.sharedContainer()
         } catch {
             fatalError("Could not open the task store: \(error)")
         }
