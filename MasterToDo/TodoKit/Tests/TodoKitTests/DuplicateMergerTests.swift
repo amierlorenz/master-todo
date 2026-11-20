@@ -139,4 +139,40 @@ struct DuplicateMergerTests {
         #expect(try context.fetch(FetchDescriptor<TaskItem>()).map(\.id) == [a.id])
     }
 
+    @Test func externalTombstoneDeletesAllCopies() throws {
+        let container = try TestContainer.make()
+        let context = container.mainContext
+        let task1 = TaskItem(title: "Articulate 1", source: .articulate, externalID: "task:1:2")
+        let task2 = TaskItem(title: "Articulate 2", source: .articulate, externalID: "task:1:2")
+        let tombstone1 = RemovedExternalItem(source: .articulate, externalID: "task:1:2")
+        let tombstone2 = RemovedExternalItem(source: .articulate, externalID: "task:1:2")
+        context.insert(task1)
+        context.insert(task2)
+        context.insert(tombstone1)
+        context.insert(tombstone2)
+
+        try DuplicateMerger.mergeAll(in: context)
+
+        #expect(try context.fetchCount(FetchDescriptor<TaskItem>()) == 0)
+        #expect(try context.fetchCount(FetchDescriptor<RemovedExternalItem>()) == 1)
+    }
+
+    @Test func mergesExternalTasksAcrossDevices() throws {
+        let container = try TestContainer.make()
+        let context = container.mainContext
+        let open = TaskItem(title: "Initial title", source: .articulate, externalID: "task:10:20")
+        let done = TaskItem(title: "Updated title", source: .articulate, externalID: "task:10:20")
+        done.state = .done
+        done.notes = "Context notes"
+        context.insert(open)
+        context.insert(done)
+
+        try DuplicateMerger.mergeAll(in: context)
+
+        let items = try context.fetch(FetchDescriptor<TaskItem>())
+        #expect(items.count == 1)
+        let kept = try #require(items.first)
+        #expect(kept.state == .done)
+        #expect(kept.notes == "Context notes")
+    }
 }

@@ -15,8 +15,8 @@ public enum DuplicateMerger {
     public static func mergeAll(in context: ModelContext) throws -> Int {
         var removed = 0
 
-        let tombstones = Dictionary(grouping: try context.fetch(FetchDescriptor<RemovedCanvasItem>()), by: \.canvasAssignmentID)
-        for group in tombstones.values where group.count > 1 {
+        let canvasTombstones = Dictionary(grouping: try context.fetch(FetchDescriptor<RemovedCanvasItem>()), by: \.canvasAssignmentID)
+        for group in canvasTombstones.values where group.count > 1 {
             let keeper = group.min { $0.id.uuidString < $1.id.uuidString }!
             for duplicate in group where duplicate !== keeper {
                 context.delete(duplicate)
@@ -24,9 +24,32 @@ public enum DuplicateMerger {
             }
         }
 
-        let tasks = Dictionary(grouping: try context.fetch(FetchDescriptor<TaskItem>()).filter(\.isCanvas), by: { $0.canvasAssignmentID! })
-        for (assignmentID, group) in tasks {
-            if tombstones[assignmentID] != nil {
+        let externalTombstones = Dictionary(grouping: try context.fetch(FetchDescriptor<RemovedExternalItem>()), by: { "\($0.sourceRaw):\($0.externalID)" })
+        for group in externalTombstones.values where group.count > 1 {
+            let keeper = group.min { $0.id.uuidString < $1.id.uuidString }!
+            for duplicate in group where duplicate !== keeper {
+                context.delete(duplicate)
+                removed += 1
+            }
+        }
+
+        let allTasks = try context.fetch(FetchDescriptor<TaskItem>())
+        let externalTasks = allTasks.filter { $0.externalID != nil || $0.canvasAssignmentID != nil }
+        let tasks = Dictionary(grouping: externalTasks, by: { task -> String in
+            let extID = task.externalID ?? task.canvasAssignmentID.map(String.init) ?? ""
+            return "\(task.sourceRaw):\(extID)"
+        })
+        for (groupKey, group) in tasks {
+            let isTombstoned: Bool = {
+                if externalTombstones[groupKey] != nil { return true }
+                if let first = group.first, first.isCanvas {
+                    if let cid = first.canvasAssignmentID, canvasTombstones[cid] != nil { return true }
+                    if let extID = first.externalID, let cid = Int(extID), canvasTombstones[cid] != nil { return true }
+                }
+                return false
+            }()
+
+            if isTombstoned {
                 group.forEach(context.delete)
                 removed += group.count
                 continue
@@ -39,6 +62,9 @@ public enum DuplicateMerger {
             }!
             let newest = group.max { ($0.lastSyncedAt ?? .distantPast) < ($1.lastSyncedAt ?? .distantPast) }!
             if newest !== keeper { copyCanvasFields(from: newest, to: keeper) }
+            if keeper.notes == nil { keeper.notes = group.compactMap(\.notes).first }
+            if keeper.link == nil { keeper.link = group.compactMap(\.link).first }
+            if keeper.externalID == nil { keeper.externalID = group.compactMap(\.externalID).first }
             keeper.submittedDismissed = group.contains(where: \.submittedDismissed)
             for duplicate in group where duplicate !== keeper {
                 context.delete(duplicate)
@@ -73,5 +99,8 @@ public enum DuplicateMerger {
         keeper.isSubmittedOnCanvas = source.isSubmittedOnCanvas
         keeper.isGoneFromCanvas = source.isGoneFromCanvas
         keeper.lastSyncedAt = source.lastSyncedAt
+        if keeper.notes == nil { keeper.notes = source.notes }
+        if keeper.link == nil { keeper.link = source.link }
+        if keeper.externalID == nil { keeper.externalID = source.externalID }
     }
 }
