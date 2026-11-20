@@ -55,6 +55,7 @@ final class SyncService {
             resyncRequested = false
             guard let client = CanvasConnection.client() else { return }
             do {
+                try TaskMigration.migrate(in: context)
                 let sync = CanvasSync(context: context, client: client)
                 try await sync.refreshCourses()
                 let result = try await sync.run()

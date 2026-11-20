@@ -22,7 +22,7 @@ extension Calendar {
 
 extension TaskItem {
     static func canvas(_ title: String, assignmentID: Int, courseID: Int = 7, dueAt: Date? = nil) -> TaskItem {
-        let task = TaskItem(title: title, dueAt: dueAt, hasDueTime: dueAt != nil)
+        let task = TaskItem(title: title, dueAt: dueAt, hasDueTime: dueAt != nil, source: .canvas, externalID: String(assignmentID))
         task.canvasAssignmentID = assignmentID
         task.canvasCourseID = courseID
         return task

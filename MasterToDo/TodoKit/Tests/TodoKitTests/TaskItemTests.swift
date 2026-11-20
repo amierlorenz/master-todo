@@ -65,15 +65,38 @@ struct TaskItemTests {
         let context = container.mainContext
         let canvas = TaskItem.canvas("A", assignmentID: 42)
         let own = TaskItem(title: "Mine")
+        let articulate = TaskItem(title: "Articulate task", source: .articulate, externalID: "task:1:2")
         context.insert(canvas)
         context.insert(own)
+        context.insert(articulate)
 
         canvas.remove(in: context)
         own.remove(in: context)
+        articulate.remove(in: context)
         try context.save()
 
         #expect(try context.fetchCount(FetchDescriptor<TaskItem>()) == 0)
-        #expect(try context.fetch(FetchDescriptor<RemovedCanvasItem>()).map(\.canvasAssignmentID) == [42])
+        let tombstones = try context.fetch(FetchDescriptor<RemovedExternalItem>())
+        #expect(tombstones.count == 2)
+        #expect(Set(tombstones.map(\.externalID)) == ["42", "task:1:2"])
+        #expect(Set(tombstones.map(\.source)) == [.canvas, .articulate])
+    }
+
+    @Test func taskSourceAndExternalFields() {
+        let item = TaskItem(
+            title: "Plan project",
+            dueAt: Date(timeIntervalSince1970: 1000),
+            hasDueTime: true,
+            source: .articulate,
+            externalID: "task:123:45",
+            notes: "Source sentence from recording",
+            link: "obsidian://open?vault=Vault&file=Note"
+        )
+        #expect(item.source == .articulate)
+        #expect(item.externalID == "task:123:45")
+        #expect(item.notes == "Source sentence from recording")
+        #expect(item.link == "obsidian://open?vault=Vault&file=Note")
+        #expect(!item.isCanvas)
     }
 
     @Test func submissionTypesRoundTrip() {

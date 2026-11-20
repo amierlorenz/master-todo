@@ -47,6 +47,10 @@ public final class TaskItem {
     public var hasDueTime: Bool = false
     public var createdAt: Date = Date.now
     public var stateRaw: String = TaskState.open.rawValue
+    public var sourceRaw: String = TaskSource.user.rawValue
+    public var externalID: String?
+    public var notes: String?
+    public var link: String?
 
     public var canvasAssignmentID: Int?
     public var canvasCourseID: Int?
@@ -63,10 +67,22 @@ public final class TaskItem {
     public var submittedDismissed: Bool = false
     public var lastSyncedAt: Date?
 
-    public init(title: String, dueAt: Date? = nil, hasDueTime: Bool = false) {
+    public init(
+        title: String,
+        dueAt: Date? = nil,
+        hasDueTime: Bool = false,
+        source: TaskSource = .user,
+        externalID: String? = nil,
+        notes: String? = nil,
+        link: String? = nil
+    ) {
         self.title = title
         self.dueAt = dueAt
         self.hasDueTime = hasDueTime
+        self.sourceRaw = source.rawValue
+        self.externalID = externalID
+        self.notes = notes
+        self.link = link
     }
 
     public var state: TaskState {
@@ -74,7 +90,12 @@ public final class TaskItem {
         set { stateRaw = newValue.rawValue }
     }
 
-    public var isCanvas: Bool { canvasAssignmentID != nil }
+    public var source: TaskSource {
+        get { TaskSource(rawValue: sourceRaw) ?? .user }
+        set { sourceRaw = newValue.rawValue }
+    }
+
+    public var isCanvas: Bool { source == .canvas }
 
     public var submissionTypes: [String] {
         get { submissionTypesRaw.split(separator: ",").map(String.init) }
@@ -118,10 +139,12 @@ public final class TaskItem {
         return trackedCourseIDs.contains(canvasCourseID)
     }
 
-    /// Deletes the task; a Canvas task leaves a tombstone so sync never re-adds it.
+    /// Deletes the task; an external task leaves a tombstone so sync never re-adds it.
     public func remove(in context: ModelContext) {
-        if let canvasAssignmentID {
-            context.insert(RemovedCanvasItem(canvasAssignmentID: canvasAssignmentID))
+        if source != .user, let externalID {
+            context.insert(RemovedExternalItem(source: source, externalID: externalID))
+        } else if let canvasAssignmentID {
+            context.insert(RemovedExternalItem(source: .canvas, externalID: String(canvasAssignmentID)))
         }
         context.delete(self)
     }

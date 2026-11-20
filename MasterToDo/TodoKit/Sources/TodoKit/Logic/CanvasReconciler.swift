@@ -33,9 +33,16 @@ public enum CanvasReconciler {
     @discardableResult
     public static func reconcile(course: TrackedCourse, assignments: [CanvasAssignment], in context: ModelContext, now: Date) throws -> Result {
         let courseID = course.canvasCourseID
-        let tombstoned = Set(try context.fetch(FetchDescriptor<RemovedCanvasItem>()).map(\.canvasAssignmentID))
+        let legacyTombstones = Set(try context.fetch(FetchDescriptor<RemovedCanvasItem>()).map(\.canvasAssignmentID))
+        let externalTombstones = Set(try context.fetch(FetchDescriptor<RemovedExternalItem>())
+            .filter { $0.source == .canvas }
+            .compactMap { Int($0.externalID) })
+        let tombstoned = legacyTombstones.union(externalTombstones)
         let existing = try context.fetch(FetchDescriptor<TaskItem>()).filter { $0.canvasCourseID == courseID && $0.isCanvas }
-        let byID = Dictionary(existing.map { ($0.canvasAssignmentID!, $0) }, uniquingKeysWith: { first, _ in first })
+        let byID = Dictionary(existing.compactMap { task -> (Int, TaskItem)? in
+            guard let id = task.canvasAssignmentID ?? task.externalID.flatMap(Int.init) else { return nil }
+            return (id, task)
+        }, uniquingKeysWith: { first, _ in first })
         var result = Result()
 
         for assignment in assignments where !tombstoned.contains(assignment.id) {
@@ -46,7 +53,14 @@ public enum CanvasReconciler {
                     result.autoDismissed += 1
                 }
             } else if !assignment.isSubmitted, !assignment.isClosed(now: now) {
-                let task = TaskItem(title: assignment.name, dueAt: assignment.dueAt, hasDueTime: assignment.dueAt != nil)
+                let task = TaskItem(
+                    title: assignment.name,
+                    dueAt: assignment.dueAt,
+                    hasDueTime: assignment.dueAt != nil,
+                    source: .canvas,
+                    externalID: String(assignment.id),
+                    link: assignment.htmlURL?.absoluteString
+                )
                 task.canvasAssignmentID = assignment.id
                 task.canvasCourseID = courseID
                 update(task, from: assignment, courseName: course.name, now: now)
@@ -56,9 +70,12 @@ public enum CanvasReconciler {
         }
 
         let fetchedIDs = Set(assignments.map(\.id))
-        for task in existing where !fetchedIDs.contains(task.canvasAssignmentID!) && !task.isGoneFromCanvas {
-            task.isGoneFromCanvas = true
-            result.flaggedGone += 1
+        for task in existing {
+            guard let id = task.canvasAssignmentID ?? task.externalID.flatMap(Int.init) else { continue }
+            if !fetchedIDs.contains(id) && !task.isGoneFromCanvas {
+                task.isGoneFromCanvas = true
+                result.flaggedGone += 1
+            }
         }
 
         if course.firstSyncedAt == nil { course.firstSyncedAt = now }
@@ -75,12 +92,15 @@ public enum CanvasReconciler {
             task.hasDueTime = assignment.dueAt != nil
             if task.state != .done { task.dueDateChanged = true }
         }
+        task.source = .canvas
+        if task.externalID == nil { task.externalID = String(assignment.id) }
         task.title = assignment.name
         task.lockAt = assignment.lockAt
         task.submissionTypes = assignment.submissionTypes
         task.isSubmittedOnCanvas = assignment.isSubmitted
         task.isGoneFromCanvas = false
         task.courseName = courseName
+        task.link = assignment.htmlURL?.absoluteString ?? task.link
         task.htmlURL = assignment.htmlURL?.absoluteString ?? task.htmlURL
         task.lastSyncedAt = now
         return changed
