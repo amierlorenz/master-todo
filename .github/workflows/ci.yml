@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    # Xcode 27 is only on the preview image for now; move to macos-27 when it ships.
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: TodoKit tests
+        working-directory: MasterToDo/TodoKit
+        run: swift test
+      - name: Build macOS app
+        run: xcodebuild -project MasterToDo/MasterToDo.xcodeproj -scheme MasterToDo -destination 'generic/platform=macOS' CODE_SIGNING_ALLOWED=NO build -quiet
+      - name: Build iOS app
+        run: xcodebuild -project MasterToDo/MasterToDo.xcodeproj -scheme MasterToDo -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build -quiet
