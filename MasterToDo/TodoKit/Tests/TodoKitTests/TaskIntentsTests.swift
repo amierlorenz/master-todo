@@ -234,7 +234,27 @@ struct TaskIntentsTests {
         #expect(result.externalID == "task:40:40")
     }
 
-    @Test func intentPerformReturnsJSONAndDialog() async throws {
+    @Test func addTaskRejectsEmptyTitle() throws {
+        let container = try TestContainer.make()
+        let context = container.mainContext
+
+        #expect(throws: TaskIntentError.emptyTitle) {
+            _ = try TaskIntents.addTask(title: "", source: "user", in: context)
+        }
+
+        #expect(throws: TaskIntentError.emptyTitle) {
+            _ = try TaskIntents.addTask(title: "   \n\t  ", source: "articulate", in: context)
+        }
+
+        #expect(throws: TaskIntentError.emptyTitle) {
+            _ = try TaskIntents.addTask(title: "", source: "articulate", payload: "{\"notes\":\"no title\"}", in: context)
+        }
+
+        let tasks = try context.fetch(FetchDescriptor<TaskItem>())
+        #expect(tasks.isEmpty)
+    }
+
+    @Test func intentPerformReturnsJSON() async throws {
         let container = try TestContainer.make()
         TaskStore.setSharedContainer(container)
         defer { TaskStore.resetSharedContainer() }

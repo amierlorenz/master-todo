@@ -7,13 +7,13 @@ public struct GetTaskStateIntent: AppIntent {
     public static let description = IntentDescription("Gets the current state of a task in MasterToDo.")
     public static let openAppWhenRun: Bool = false
 
-    @Parameter(title: "Source")
+    @Parameter(title: "Source", default: "")
     public var source: String
 
-    @Parameter(title: "External ID")
+    @Parameter(title: "External ID", default: "")
     public var externalID: String
 
-    @Parameter(title: "JSON Payload")
+    @Parameter(title: "JSON Payload", inputConnectionBehavior: .connectToPreviousIntentResult)
     public var payload: String?
 
     public init() {
@@ -34,7 +34,7 @@ public struct GetTaskStateIntent: AppIntent {
     }
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+    public func perform() async throws -> some IntentResult & ReturnsValue<String> {
         let context = try TaskStore.mainContext()
         let result = try TaskIntents.getTaskState(
             source: source,
@@ -44,7 +44,6 @@ public struct GetTaskStateIntent: AppIntent {
         )
 
         let json = result.toJSON()
-        let dialogMessage: LocalizedStringResource = "Task state is \(result.state)."
-        return .result(value: json, dialog: IntentDialog(dialogMessage))
+        return .result(value: json)
     }
 }

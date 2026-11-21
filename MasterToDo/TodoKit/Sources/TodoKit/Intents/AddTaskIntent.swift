@@ -7,7 +7,7 @@ public struct AddTaskIntent: AppIntent {
     public static let description = IntentDescription("Adds a task to MasterToDo.")
     public static let openAppWhenRun: Bool = false
 
-    @Parameter(title: "Title")
+    @Parameter(title: "Title", default: "")
     public var title: String
 
     @Parameter(title: "Source", default: "user")
@@ -28,7 +28,7 @@ public struct AddTaskIntent: AppIntent {
     @Parameter(title: "Link")
     public var link: String?
 
-    @Parameter(title: "JSON Payload")
+    @Parameter(title: "JSON Payload", inputConnectionBehavior: .connectToPreviousIntentResult)
     public var payload: String?
 
     public init() {
@@ -68,7 +68,7 @@ public struct AddTaskIntent: AppIntent {
     }
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+    public func perform() async throws -> some IntentResult & ReturnsValue<String> {
         let context = try TaskStore.mainContext()
         let result = try TaskIntents.addTask(
             title: title,
@@ -83,12 +83,6 @@ public struct AddTaskIntent: AppIntent {
         )
 
         let json = result.toJSON()
-        let dialogMessage: LocalizedStringResource = switch result.status {
-        case "created": "Added task: \(title)"
-        case "existing": "Task already exists."
-        case "skipped": "Task was previously removed."
-        default: "Task processed."
-        }
-        return .result(value: json, dialog: IntentDialog(dialogMessage))
+        return .result(value: json)
     }
 }

@@ -1,6 +1,17 @@
 import Foundation
 import SwiftData
 
+public enum TaskIntentError: Error, LocalizedError, Equatable, Sendable {
+    case emptyTitle
+
+    public var errorDescription: String? {
+        switch self {
+        case .emptyTitle:
+            return "Task title cannot be empty."
+        }
+    }
+}
+
 @MainActor
 public enum TaskIntents {
     public struct AddTaskResult: Codable, Equatable, Sendable {
@@ -79,6 +90,9 @@ public enum TaskIntents {
         }
 
         let cleanTitle = resolvedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanTitle.isEmpty else {
+            throw TaskIntentError.emptyTitle
+        }
         let cleanSource = resolvedSource.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let taskSource = TaskSource(rawValue: cleanSource) ?? .user
         let cleanExtID = resolvedExternalID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
