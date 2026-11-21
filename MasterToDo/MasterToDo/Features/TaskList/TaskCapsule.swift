@@ -99,9 +99,16 @@ struct TaskCapsule: View {
     }
 
     private var glass: Glass {
-        if isDone { return .regular.tint(.green.opacity(0.15)).interactive() }
-        if isArmed || isCompleting { return .regular.tint(.green.opacity(0.12)).interactive() }
-        return .regular.interactive()
+        let base: Glass
+        if isDone { base = .regular.tint(.green.opacity(0.15)) }
+        else if isArmed || isCompleting { base = .regular.tint(.green.opacity(0.12)) }
+        else { base = .regular }
+        #if os(iOS)
+        // Interactive glass on iOS takes the touches meant for the row's open menu (#41).
+        return base
+        #else
+        return base.interactive()
+        #endif
     }
 
     @ViewBuilder
