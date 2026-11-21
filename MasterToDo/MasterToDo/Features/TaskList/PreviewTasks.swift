@@ -47,6 +47,10 @@ enum PreviewTasks {
             task("Removed from Canvas", due: 4 * day) { $0.isGoneFromCanvas = true },
             task("Final project", due: 20 * day),
             task("Physics practice questions", due: 2 * day, canvas: false),
+            task("Voice memo action items", due: day, canvas: false) {
+                $0.source = .articulate
+                $0.externalID = "art:preview-1"
+            },
             task("Call the bank", due: nil, canvas: false),
             task("Lab 1", due: -5 * day) { $0.state = .done },
         ]

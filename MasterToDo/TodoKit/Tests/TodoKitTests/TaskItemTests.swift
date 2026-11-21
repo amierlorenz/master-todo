@@ -33,6 +33,11 @@ struct TaskItemTests {
         #expect(task.status(now: now) == .dateChanged)
         task.state = .done
         #expect(task.status(now: now) == .done)
+
+        let articulate = TaskItem(title: "art", source: .articulate, externalID: "art:1")
+        #expect(articulate.status(now: now) == .articulate)
+        articulate.state = .done
+        #expect(articulate.status(now: now) == .done)
     }
 
     @Test func canvasFlagPriority() {
@@ -93,6 +98,7 @@ struct TaskItemTests {
             link: "obsidian://open?vault=Vault&file=Note"
         )
         #expect(item.source == .articulate)
+        #expect(item.isArticulate)
         #expect(item.externalID == "task:123:45")
         #expect(item.notes == "Source sentence from recording")
         #expect(item.link == "obsidian://open?vault=Vault&file=Note")

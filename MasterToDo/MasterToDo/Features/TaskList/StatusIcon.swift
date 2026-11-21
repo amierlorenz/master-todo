@@ -29,6 +29,7 @@ extension TaskStatus {
         case .closed: "Closed in Canvas"
         case .submitted: "Submitted on Canvas"
         case .canvas: "Canvas assignment"
+        case .articulate: "Articulate task"
         case .userCreated: "User-created task"
         }
     }
@@ -45,6 +46,7 @@ extension TaskStatus {
         case .closed: "lock.fill"
         case .submitted: "checkmark.seal.fill"
         case .canvas: nil
+        case .articulate: "waveform"
         case .userCreated: "person.fill"
         }
     }
@@ -56,7 +58,7 @@ extension TaskStatus {
         case .notTurnedIn: .orange
         case .removedFromCanvas: .red
         case .closed: .gray
-        case .canvas, .userCreated: .secondary
+        case .canvas, .articulate, .userCreated: .secondary
         }
     }
 }

@@ -181,6 +181,7 @@ extension TaskFilter {
         case .undated: .gray
         case .done: .green
         case .canvas: .indigo
+        case .articulate: .purple
         case .manual: .teal
         case .submitted: .green
         case .dateChanged: .blue
@@ -197,6 +198,7 @@ extension TaskFilter {
         case .undated: Image(systemName: "tray")
         case .done: Image(systemName: "checkmark.circle")
         case .canvas: CanvasLogo(size: size)
+        case .articulate: Image(systemName: "waveform")
         case .manual: Image(systemName: "person.fill")
         case .submitted: Image(systemName: "checkmark.seal.fill")
         case .dateChanged: Image(systemName: "calendar.badge.clock")

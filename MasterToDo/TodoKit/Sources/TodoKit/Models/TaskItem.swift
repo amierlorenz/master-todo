@@ -34,6 +34,7 @@ public enum TaskStatus: Sendable {
     case closed
     case submitted
     case canvas
+    case articulate
     case userCreated
 }
 
@@ -96,6 +97,7 @@ public final class TaskItem {
     }
 
     public var isCanvas: Bool { source == .canvas }
+    public var isArticulate: Bool { source == .articulate }
 
     public var submissionTypes: [String] {
         get { submissionTypesRaw.split(separator: ",").map(String.init) }
@@ -129,7 +131,10 @@ public final class TaskItem {
         case .removedFromCanvas: return .removedFromCanvas
         case .closed: return .closed
         case .submitted where !submittedDismissed: return .submitted
-        case .submitted, nil: return isCanvas ? .canvas : .userCreated
+        case .submitted, nil:
+            if isCanvas { return .canvas }
+            if isArticulate { return .articulate }
+            return .userCreated
         }
     }
 
