@@ -63,4 +63,43 @@ struct TaskFilterTests {
         #expect(selection.count(.manual, in: tasks, now: now, calendar: cal) == 0)
         #expect(selection.count(.canvas, in: tasks, now: now, calendar: cal) == 1)
     }
+
+    @Test func articulateFilterMatchesArticulateTasksOnly() {
+        let articulate = TaskItem(title: "voice memo", source: .articulate, externalID: "art:1")
+        let canvas = TaskItem.canvas("homework", assignmentID: 10)
+        let manual = TaskItem(title: "errand")
+
+        #expect(TaskFilter.articulate.matches(articulate, now: now, calendar: cal))
+        #expect(!TaskFilter.articulate.matches(canvas, now: now, calendar: cal))
+        #expect(!TaskFilter.articulate.matches(manual, now: now, calendar: cal))
+
+        #expect(!TaskFilter.manual.matches(articulate, now: now, calendar: cal))
+        #expect(TaskFilter.manual.matches(manual, now: now, calendar: cal))
+        #expect(!TaskFilter.manual.matches(canvas, now: now, calendar: cal))
+
+        #expect(!TaskFilter.canvas.matches(articulate, now: now, calendar: cal))
+        #expect(!TaskFilter.canvas.matches(manual, now: now, calendar: cal))
+        #expect(TaskFilter.canvas.matches(canvas, now: now, calendar: cal))
+    }
+
+    @Test func articulateInSourceGroupTogglesAndFilters() {
+        let articulate = TaskItem(title: "voice memo", source: .articulate, externalID: "art:1")
+        let allTasks = tasks + [articulate]
+
+        var selection = FilterSelection()
+        selection.toggle(.articulate)
+        #expect(selection.picked == [.articulate])
+
+        let matching = allTasks.filter { selection.passes($0, now: now, calendar: cal) }.map(\.title)
+        #expect(matching == ["voice memo"])
+
+        #expect(selection.count(.articulate, in: allTasks, now: now, calendar: cal) == 1)
+        #expect(selection.count(.manual, in: allTasks, now: now, calendar: cal) == 2)
+        #expect(selection.count(.canvas, in: allTasks, now: now, calendar: cal) == 2)
+
+        selection.toggle(.manual)
+        #expect(selection.picked == [.manual])
+        let manualMatching = allTasks.filter { selection.passes($0, now: now, calendar: cal) }.map(\.title)
+        #expect(manualMatching == ["upcoming", "undated"])
+    }
 }

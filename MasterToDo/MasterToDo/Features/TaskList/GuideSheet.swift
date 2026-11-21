@@ -15,7 +15,7 @@ struct GuideSheet: View {
                         row(Image(systemName: "hand.tap.fill").font(.title3).foregroundStyle(.tint), "Opens a menu to open it in Canvas, complete it, or remove it")
                     }
                     section("Icon") {
-                        ForEach([TaskStatus.canvas, .userCreated, .dateChanged, .submitted, .notTurnedIn, .closed, .removedFromCanvas, .done], id: \.self) { status in
+                        ForEach([TaskStatus.canvas, .articulate, .userCreated, .dateChanged, .submitted, .notTurnedIn, .closed, .removedFromCanvas, .done], id: \.self) { status in
                             row(StatusIcon(status: status), status.isDismissible ? "\(status.label). Tap to dismiss." : status.label)
                         }
                     }

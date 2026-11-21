@@ -44,6 +44,8 @@ struct TaskCapsule: View {
                         Text(task.title).font(.subheadline.weight(.medium)).lineLimit(1)
                         if let course = task.courseName {
                             Text(course).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                        } else if task.isArticulate {
+                            Text("Articulate").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
                     Spacer(minLength: 0)
@@ -109,6 +111,11 @@ struct TaskCapsule: View {
                 task.dueDateChanged = false
                 openURL(canvasURL)
             }
+        } else if let linkURL = task.link.flatMap(URL.init(string:)) {
+            Button("Open Link", systemImage: "arrow.up.right") {
+                openURL(linkURL)
+            }
+            Button("Edit", systemImage: "pencil", action: onEdit)
         } else {
             Button("Edit", systemImage: "pencil", action: onEdit)
         }

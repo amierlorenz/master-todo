@@ -2,13 +2,13 @@ import Foundation
 
 public enum TaskFilter: String, CaseIterable, Sendable {
     case closing, overdue, upcoming, undated, done
-    case canvas, manual
+    case canvas, articulate, manual
     case submitted, dateChanged, closed
 
     /// At most one filter per group is picked; picks in different groups combine.
     public static let groups: [[TaskFilter]] = [
         [.closing, .overdue, .upcoming, .undated, .done],
-        [.canvas, .manual],
+        [.canvas, .articulate, .manual],
         [.submitted, .dateChanged, .closed],
     ]
     public static let noticeGroup = 2
@@ -26,7 +26,8 @@ public enum TaskFilter: String, CaseIterable, Sendable {
         case .undated: isOpen && bucket() == .noDate
         case .done: !isOpen
         case .canvas: task.isCanvas
-        case .manual: !task.isCanvas
+        case .articulate: task.source == .articulate
+        case .manual: task.source == .user
         case .submitted: task.canvasFlag(now: now) == .submitted && !task.submittedDismissed
         case .dateChanged: task.dueDateChanged
         case .closed: task.canvasFlag(now: now) == .closed
